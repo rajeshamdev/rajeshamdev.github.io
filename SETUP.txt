@@ -11,14 +11,17 @@ installed, and how to modify and test the site day-to-day.
 ----------------------------------------------------------------
 
 A personal portfolio + technical blog built with Astro, styled
-with Tailwind CSS, deployed (eventually) to Cloudflare Pages.
+with Tailwind CSS, deployed to GitHub Pages as a user site at
+https://rajeshamdev.github.io.
 
 - Framework : Astro 6 (blog starter template)
 - Styling   : Tailwind CSS v4 + some scoped <style> blocks
 - Content   : Markdown / MDX for blog posts
 - Output    : Static HTML (no server required at runtime)
-- Host      : Cloudflare Pages (chosen for unlimited bandwidth
-              on the free tier)
+- Host      : GitHub Pages (free, served from
+              github.com/rajeshamdev/rajeshamdev.github.io)
+- CI/CD     : GitHub Actions workflow (.github/workflows/deploy.yml)
+              auto-builds and deploys on every push to main.
 
 Project directory: /Users/rgajjela/All/rgajjela
 
@@ -238,26 +241,88 @@ Preview the built site exactly as it will be served:
     to see the production output (with minification, image
     optimization, etc.) rather than the dev build.
 
-Test checklist after any change:
-    1. npm run dev  — verify the page looks right in the browser.
-    2. Click through Home / Projects / Blog / About — no 404s.
-    3. Open at least one blog post — make sure it renders.
-    4. npm run build  — make sure the build passes without errors.
+PRE-PUSH TEST WORKFLOW (do this every time before pushing):
+
+    All commands run from inside /Users/rgajjela/All/rgajjela.
+
+    Step 1 — Visual check in dev mode
+
+        npm run dev
+
+        - Opens http://localhost:4321 with hot reload.
+        - Make your edits, watch the browser auto-refresh.
+        - Click through every page you touched: /, /projects,
+          /blog, /about, and any blog post.
+        - Watch the dev terminal for red error messages.
+        - Press Ctrl+C when done.
+
+        Catches: broken JSX, bad imports, runtime errors,
+        layout breaks, content typos.
+        Does NOT catch: all build-time errors. Always run the
+        production build too.
+
+    Step 2 — Production build (the most important check)
+
+        npm run build
+
+        - Runs the EXACT SAME build that GitHub Actions runs
+          on push.
+        - Output goes to dist/.
+        - Should end with "✓ Completed in <time>" and
+          "[build] Complete!".
+        - If this fails locally, GitHub Actions WILL fail too.
+          Fix it before pushing.
+
+        Catches: TypeScript errors, broken imports, blog post
+        frontmatter schema violations, missing assets, image
+        processing errors. All the things `npm run dev` lets
+        through.
+
+    Step 3 — Preview the production build (optional but nice)
+
+        npm run preview
+
+        - Serves the built dist/ at http://localhost:4321.
+        - This is the actual minified HTML that will be
+          deployed — exactly as visitors will see it.
+        - Click through one more time to be sure.
+        - Press Ctrl+C when done.
+
+        Catches: anything that worked in dev but breaks after
+        the build (rare, but happens — usually broken asset
+        paths or `base` config issues).
+
+    Step 4 — Review the diff
+
+        git status        # which files changed
+        git diff          # what exactly changed in each file
+
+        Spend 30 seconds reading the diff. Easiest way to catch
+        a stray console.log, a leftover placeholder, or a wrong
+        path. NEVER push without reading the diff first.
+
+    Minimum viable test (if you only do one thing):
+
+        npm run build
+
+        If it passes locally, GitHub Actions will almost
+        certainly succeed. Everything else is paranoia/polish.
 
 
 ----------------------------------------------------------------
   7. GIT WORKFLOW FOR CHANGES
 ----------------------------------------------------------------
 
-After you've edited files and verified locally:
+After running through the pre-push test workflow above:
 
     cd /Users/rgajjela/All/rgajjela
 
     git status                    # see what changed
-    git diff                      # see the actual changes
-    git add <files>               # or: git add -A  for everything
+    git diff                      # read the diff (do it!)
+    git add <files>               # prefer naming files explicitly
+                                  # over `git add -A`
     git commit -m "message"
-    git push                      # once a remote is configured
+    git push
 
 Use short, descriptive commit messages, e.g.:
 
@@ -265,47 +330,87 @@ Use short, descriptive commit messages, e.g.:
     "Fix typo in About page"
     "Update projects list with paymentApp"
 
+After pushing, ALWAYS watch the GitHub Actions run finish:
+
+    https://github.com/rajeshamdev/rajeshamdev.github.io/actions
+
+    - The new run appears within a few seconds of `git push`.
+    - Build + deploy takes ~1-2 minutes.
+    - Should go ✅ green. If it goes ❌ red, click into the
+      failed step and read the actual error.
+    - Once green, the change is live at
+      https://rajeshamdev.github.io.
+
 
 ----------------------------------------------------------------
-  8. DEPLOYMENT (CLOUDFLARE PAGES) — OVERVIEW
+  8. DEPLOYMENT (GITHUB PAGES) — HOW IT WORKS
 ----------------------------------------------------------------
 
-The plan is to host this site for free on Cloudflare Pages.
-Steps (to be done the first time only):
+This site is deployed to GitHub Pages as a USER SITE, which
+means it lives at the root of your github.io subdomain instead
+of under a subpath:
 
-    1. Create a new empty repo on github.com under your account
-       (e.g. github.com/rajeshamdev/personal-site).
-       DO NOT initialize it with a README — we already have
-       one locally.
+    Live URL : https://rajeshamdev.github.io
+    Repo     : github.com/rajeshamdev/rajeshamdev.github.io
+    Branch   : main
 
-    2. Add the remote and push:
+The repo MUST be named exactly "<username>.github.io" for this
+to work as a user site at the root. That's a GitHub convention,
+not an Astro one.
 
-           git remote add origin git@github.com:rajeshamdev/<repo>.git
-           git branch -M main
-           git push -u origin main
+Deployment is fully automated via GitHub Actions. The workflow
+file is at:
 
-    3. Log in to Cloudflare (dash.cloudflare.com), go to
-       "Workers & Pages" -> "Create" -> "Pages" ->
-       "Connect to Git".
+    .github/workflows/deploy.yml
 
-    4. Authorize Cloudflare to read your GitHub repos, pick
-       the repo, and configure the build:
+What it does on every push to main:
 
-           Framework preset : Astro
-           Build command    : npm run build
-           Build output dir : dist
-           Node version     : 20 or newer
+    1. Checks out the repo on an Ubuntu runner.
+    2. Runs the official `withastro/action@v3` step, which:
+         - Installs Node 22 (matches the engines field in
+           package.json).
+         - Runs `npm ci` to install exact dependency versions.
+         - Runs `npm run build` to generate the static site
+           into dist/.
+         - Uploads dist/ as a Pages artifact.
+    3. The `actions/deploy-pages@v4` step publishes that
+       artifact to GitHub Pages.
 
-    5. Click "Save and Deploy". Cloudflare will build the site
-       and give you a URL like
-       https://<project>.pages.dev.
+The whole build + deploy takes about 1-2 minutes. You can
+watch it run live at:
 
-    6. (Optional) Add a custom domain in the Pages project
-       settings.
+    https://github.com/rajeshamdev/rajeshamdev.github.io/actions
 
-After this initial setup, every `git push` to the main branch
-will automatically trigger a new build + deploy on Cloudflare.
-No manual deployment steps required.
+ONE-TIME SETUP (already done):
+
+    1. Renamed repo to rajeshamdev.github.io on GitHub.
+    2. In Settings -> Pages, set "Build and deployment ->
+       Source" to "GitHub Actions" (NOT "Deploy from a
+       branch" — that triggers Jekyll auto-build, which
+       fails on Astro source files).
+    3. Added .github/workflows/deploy.yml and pushed it.
+    4. Set the `site` field in astro.config.mjs to
+       https://rajeshamdev.github.io so generated URLs in
+       sitemap, RSS, etc. are correct.
+
+Day-to-day deployment is now zero-effort:
+
+    git add <files>
+    git commit -m "..."
+    git push
+
+GitHub Actions builds and publishes within ~2 minutes. No
+manual steps. To check deploy status, visit the Actions tab
+on the repo.
+
+CUSTOM DOMAIN (optional, for later):
+
+    1. Buy a domain (e.g. rgajjela.dev).
+    2. Settings -> Pages -> Custom domain -> add the domain.
+    3. Add the GitHub Pages DNS records at your registrar
+       (4 A records for apex, or one CNAME for www).
+    4. Wait for the cert to provision (~1-10 minutes), then
+       check "Enforce HTTPS".
 
 
 ----------------------------------------------------------------
