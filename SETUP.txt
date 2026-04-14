@@ -1,0 +1,344 @@
+================================================================
+  RGAJJELA PORTFOLIO SITE — SETUP & USAGE GUIDE
+================================================================
+
+This file explains how this project was set up, what tools are
+installed, and how to modify and test the site day-to-day.
+
+
+----------------------------------------------------------------
+  1. WHAT THIS PROJECT IS
+----------------------------------------------------------------
+
+A personal portfolio + technical blog built with Astro, styled
+with Tailwind CSS, deployed (eventually) to Cloudflare Pages.
+
+- Framework : Astro 6 (blog starter template)
+- Styling   : Tailwind CSS v4 + some scoped <style> blocks
+- Content   : Markdown / MDX for blog posts
+- Output    : Static HTML (no server required at runtime)
+- Host      : Cloudflare Pages (chosen for unlimited bandwidth
+              on the free tier)
+
+Project directory: /Users/rgajjela/All/rgajjela
+
+
+----------------------------------------------------------------
+  2. TOOLS & DEPENDENCIES INSTALLED
+----------------------------------------------------------------
+
+System tools (were already on the machine):
+
+  - Node.js  v23.11.0   (check with: node --version)
+  - npm      10.9.2     (check with: npm --version)
+  - git                 (check with: git --version)
+
+npm packages (installed automatically by the scaffold):
+
+  Core:
+  - astro@^6.1.6              The framework itself.
+  - @astrojs/mdx              Lets you write blog posts in .mdx
+                              (Markdown with embedded components).
+  - @astrojs/rss              Generates the /rss.xml feed.
+  - @astrojs/sitemap          Generates sitemap-index.xml for SEO.
+  - sharp                     Image optimization at build time.
+
+  Styling (added after scaffold):
+  - tailwindcss@^4.2.2        Tailwind CSS v4.
+  - @tailwindcss/vite         Vite plugin to wire Tailwind into
+                              Astro's build.
+
+All of these live in node_modules/ and are tracked via
+package.json + package-lock.json.
+
+
+----------------------------------------------------------------
+  3. HOW THE PROJECT WAS SET UP (STEP BY STEP)
+----------------------------------------------------------------
+
+Step 1. Scaffold the Astro project with the blog template.
+
+    cd /Users/rgajjela/All/rgajjela
+    npm create astro@latest . -- \
+        --template blog \
+        --install \
+        --git \
+        --typescript strict \
+        --yes
+
+    This creates src/, public/, package.json, astro.config.mjs,
+    installs dependencies, and initializes a git repo.
+
+Step 2. Add Tailwind CSS.
+
+    npx astro add tailwind --yes
+
+    This installs tailwindcss + @tailwindcss/vite and updates
+    astro.config.mjs to add the Vite plugin.
+
+Step 3. Enable Tailwind in the stylesheet.
+
+    Add the following line at the top of src/styles/global.css:
+
+        @import "tailwindcss";
+
+    The file src/components/BaseHead.astro already imports
+    global.css, so Tailwind is picked up on every page.
+
+Step 4. Customize the site content (done manually).
+
+    Files that were edited / created:
+    - src/consts.ts                  site title + description
+    - src/components/Header.astro    centered title + nav bar
+    - src/components/Footer.astro    name + GitHub link
+    - src/pages/index.astro          home page (bio + interests)
+    - src/pages/about.astro          about page
+    - src/pages/projects.astro       NEW — projects list
+    - src/pages/blog/index.astro     bulleted post list
+
+    Sample posts removed:
+    - first-post.md, second-post.md, third-post.md,
+      markdown-style-guide.md, using-mdx.mdx
+
+    Real posts created:
+    - src/content/blog/erasure-coding.md
+    - src/content/blog/ssh-reverse-tunnels.md
+
+Step 5. Configure git user locally for this repo.
+
+    Global git config still uses your work email, but for this
+    personal project commits should be under your personal email.
+
+        cd /Users/rgajjela/All/rgajjela
+        git config --local user.name  "Rajesham Gajjela"
+        git config --local user.email "rajeshamdev@gmail.com"
+
+    These values live in .git/config inside this repo only and
+    do NOT affect any other repository on your machine.
+
+
+----------------------------------------------------------------
+  4. PROJECT STRUCTURE YOU SHOULD KNOW
+----------------------------------------------------------------
+
+  rgajjela/
+  |-- astro.config.mjs         Astro + Tailwind + integrations
+  |-- package.json             Scripts + dependencies
+  |-- tsconfig.json            TypeScript config
+  |-- public/                  Static assets copied as-is
+  |                            (favicon.svg, etc.)
+  |-- src/
+  |   |-- consts.ts            SITE_TITLE, SITE_DESCRIPTION
+  |   |-- content.config.ts    Blog collection schema (title,
+  |   |                        description, pubDate, etc.)
+  |   |-- styles/
+  |   |   |-- global.css       Global styles + Tailwind import
+  |   |-- assets/              Images bundled & optimized
+  |   |-- components/
+  |   |   |-- BaseHead.astro   <head> tag: meta, fonts, css
+  |   |   |-- Header.astro     Site title + top navigation
+  |   |   |-- Footer.astro     Copyright + social links
+  |   |   |-- HeaderLink.astro Single nav link (active state)
+  |   |   |-- FormattedDate.astro  Renders a date nicely
+  |   |-- layouts/
+  |   |   |-- BlogPost.astro   Wraps blog posts + about page
+  |   |-- pages/               Every .astro file here = a route
+  |   |   |-- index.astro      Route: /
+  |   |   |-- about.astro      Route: /about
+  |   |   |-- projects.astro   Route: /projects
+  |   |   |-- rss.xml.js       Route: /rss.xml
+  |   |   |-- blog/
+  |   |       |-- index.astro  Route: /blog
+  |   |       |-- [...slug].astro  Renders /blog/<post-id>/
+  |   |-- content/
+  |       |-- blog/
+  |           |-- *.md, *.mdx  One file per blog post
+
+  Rule of thumb: if you add a file to src/pages/ named
+  foo.astro, that automatically becomes the /foo route. If you
+  add a file to src/content/blog/ named bar.md, that
+  automatically becomes /blog/bar/.
+
+
+----------------------------------------------------------------
+  5. COMMON MODIFICATIONS — WHERE TO EDIT WHAT
+----------------------------------------------------------------
+
+Change site title / meta description (shown in browser tab):
+    src/consts.ts
+
+Edit the home page text:
+    src/pages/index.astro
+
+Edit the About page:
+    src/pages/about.astro
+
+Add or edit a project card:
+    src/pages/projects.astro
+    — update the `projects` array at the top of the file.
+      Each entry has: title, description, tech[], link
+
+Add a new blog post:
+    1. Create a new file:
+         src/content/blog/my-new-post.md
+    2. Start it with frontmatter (the part between ---):
+         ---
+         title: 'My Post Title'
+         description: 'Short summary for preview / SEO'
+         pubDate: 'Apr 14 2026'
+         ---
+    3. Write your content below the second --- in Markdown.
+    4. Save. The post automatically shows up at /blog/my-new-post/
+       and in the /blog list.
+
+Change the nav links in the header:
+    src/components/Header.astro
+    — edit the <HeaderLink> entries.
+
+Change the footer:
+    src/components/Footer.astro
+
+Change global look & feel (colors, fonts, etc.):
+    src/styles/global.css
+    — :root variables at the top control accent color, grays, etc.
+
+
+----------------------------------------------------------------
+  6. DEVELOPMENT WORKFLOW — RUN & TEST LOCALLY
+----------------------------------------------------------------
+
+All commands below are run from INSIDE the project directory:
+
+    cd /Users/rgajjela/All/rgajjela
+
+Start the dev server with hot reload:
+
+    npm run dev
+
+    This starts Astro on http://localhost:4321
+    Open that URL in a browser. Any change you save to a source
+    file is picked up automatically and the page re-renders.
+
+    Keep the terminal open; you'll see access logs there.
+    Press Ctrl+C to stop the dev server.
+
+Build the production site (sanity check before pushing):
+
+    npm run build
+
+    This writes the static output to the dist/ folder and will
+    fail loudly if you have a broken import, bad frontmatter,
+    or a TypeScript error. Run this any time you're unsure.
+
+Preview the built site exactly as it will be served:
+
+    npm run preview
+
+    Starts a local static server from dist/. Useful if you want
+    to see the production output (with minification, image
+    optimization, etc.) rather than the dev build.
+
+Test checklist after any change:
+    1. npm run dev  — verify the page looks right in the browser.
+    2. Click through Home / Projects / Blog / About — no 404s.
+    3. Open at least one blog post — make sure it renders.
+    4. npm run build  — make sure the build passes without errors.
+
+
+----------------------------------------------------------------
+  7. GIT WORKFLOW FOR CHANGES
+----------------------------------------------------------------
+
+After you've edited files and verified locally:
+
+    cd /Users/rgajjela/All/rgajjela
+
+    git status                    # see what changed
+    git diff                      # see the actual changes
+    git add <files>               # or: git add -A  for everything
+    git commit -m "message"
+    git push                      # once a remote is configured
+
+Use short, descriptive commit messages, e.g.:
+
+    "Add blog post on erasure coding"
+    "Fix typo in About page"
+    "Update projects list with paymentApp"
+
+
+----------------------------------------------------------------
+  8. DEPLOYMENT (CLOUDFLARE PAGES) — OVERVIEW
+----------------------------------------------------------------
+
+The plan is to host this site for free on Cloudflare Pages.
+Steps (to be done the first time only):
+
+    1. Create a new empty repo on github.com under your account
+       (e.g. github.com/rajeshamdev/personal-site).
+       DO NOT initialize it with a README — we already have
+       one locally.
+
+    2. Add the remote and push:
+
+           git remote add origin git@github.com:rajeshamdev/<repo>.git
+           git branch -M main
+           git push -u origin main
+
+    3. Log in to Cloudflare (dash.cloudflare.com), go to
+       "Workers & Pages" -> "Create" -> "Pages" ->
+       "Connect to Git".
+
+    4. Authorize Cloudflare to read your GitHub repos, pick
+       the repo, and configure the build:
+
+           Framework preset : Astro
+           Build command    : npm run build
+           Build output dir : dist
+           Node version     : 20 or newer
+
+    5. Click "Save and Deploy". Cloudflare will build the site
+       and give you a URL like
+       https://<project>.pages.dev.
+
+    6. (Optional) Add a custom domain in the Pages project
+       settings.
+
+After this initial setup, every `git push` to the main branch
+will automatically trigger a new build + deploy on Cloudflare.
+No manual deployment steps required.
+
+
+----------------------------------------------------------------
+  9. TROUBLESHOOTING QUICK NOTES
+----------------------------------------------------------------
+
+Dev server won't start:
+    - Make sure you're in the project directory.
+    - Delete node_modules and run `npm install` again.
+
+Bullets don't show in a <ul>:
+    - Tailwind v4's preflight resets list styles globally.
+    - Fix: in the scoped <style> for that page/component, add
+          list-style: disc outside;
+          padding-left: 1.5em;
+      and on the <li>:
+          display: list-item;
+      (See src/pages/index.astro for a working example.)
+
+Broken image / 404 on an asset:
+    - Images inside src/assets/ must be imported in the
+      frontmatter of the .astro file before they render.
+    - Static files in public/ are served as-is from / at runtime.
+
+Build fails with a schema error on a blog post:
+    - Check the frontmatter against src/content.config.ts.
+      title, description, and pubDate are required.
+
+CSS changes not showing:
+    - Hard refresh the browser: Cmd + Shift + R.
+    - If still not picking up, restart `npm run dev`.
+
+
+----------------------------------------------------------------
+  END OF FILE
+----------------------------------------------------------------
